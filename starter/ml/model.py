@@ -1,4 +1,7 @@
+import pandas as pd
 from sklearn.metrics import fbeta_score, precision_score, recall_score
+from sklearn.ensemble import RandomForestClassifier as rf
+from .data import process_data
 
 
 # Optional: implement hyperparameter tuning.
@@ -14,11 +17,13 @@ def train_model(X_train, y_train):
         Labels.
     Returns
     -------
-    model
+    model : RandomForestClassifier
         Trained machine learning model.
     """
+    clf = rf()
+    clf.fit(X_train, y_train)
 
-    pass
+    return clf
 
 
 def compute_model_metrics(y, preds):
@@ -48,7 +53,7 @@ def inference(model, X):
 
     Inputs
     ------
-    model : ???
+    model : RandomForestClassifier
         Trained machine learning model.
     X : np.array
         Data used for prediction.
@@ -57,4 +62,61 @@ def inference(model, X):
     preds : np.array
         Predictions from the model.
     """
-    pass
+    preds = model.predict(X)
+    return preds
+
+
+def compute_metrics_by_slice(clf, encoder, lb, df, target, cat_columns, output_path=None):
+    """Compute metrics by slice of the data.
+    For simplicity, the function outputs the performance on slices of just the categorical features.
+
+    Inputs
+    ------
+    clf: Classifier model (scikit-learn compliant)
+    encoder: trained one-hot-encoder (output of the data.process_data function on training data)
+    lb: trained label binarizer (output of the data.process_data function on training data)
+    df: pandas dataframe where to compute metrics by slice
+    target: target column in the df input dataframe
+    cat_columns: categorical columns
+    output_path: output path to write the output dataframe.
+
+    Returns
+    -------
+    metrics_df: pd.DataFrame
+        Predictions by slice on the input data according the categorical columns.
+    """
+    columns = ["column", "category", "precision", "recall", "f1"]
+    metrics_df = pd.DataFrame(columns=columns)
+
+    for col in cat_columns:
+        for category in df[col].unique():
+
+            df_line = {}
+
+            tmp_df = df[df[col] == category]
+
+            X, y, _, _ = process_data(
+                X=tmp_df,
+                categorical_features=cat_columns,
+                label=target,
+                training=False,
+                encoder=encoder,
+                lb=lb
+            )
+
+            preds = inference(clf, X)
+
+            precision, recall, f1 = compute_model_metrics(y, preds)
+
+            df_line['column'] = col
+            df_line['category'] = category
+            df_line['precision'] = precision
+            df_line['recall'] = recall
+            df_line['f1'] = f1
+
+            metrics_df = metrics_df.append(df_line, ignore_index=True)
+
+    if output_path is not None:
+        metrics_df.to_csv(output_path)
+
+    return metrics_df
