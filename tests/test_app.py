@@ -28,7 +28,7 @@ def test_wrong_get(client):
     assert r.status_code != 200
 
 
-def test_post(client):
+def test_post_0(client):
 
     r = client.post("/predictions", json={
         "age": 39,
@@ -49,6 +49,29 @@ def test_post(client):
 
     assert r.status_code == 200
     assert r.json() == {"predicted salary": "<=50K"}
+
+
+def test_post_1(client):
+
+    r = client.post("/predictions", json={
+        "age": 52,
+        "fnlgt": 287927,
+        "workclass": "Self-emp-inc",
+        "education": "HS-grad",
+        "education_num": 9,
+        "marital_status": "Married-civ-spouse",
+        "occupation": "Exec-managerial",
+        "relationship": "Wife",
+        "race": "White",
+        "sex": "Female",
+        "capital_gain": 15024,
+        "capital_loss": 0,
+        "hours_per_week": 40,
+        "native_country": "United-States"
+    })
+
+    assert r.status_code == 200
+    assert r.json() == {"predicted salary": ">50K"}
 
 
 def test_wrong_post(client):
